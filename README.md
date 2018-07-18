@@ -1,60 +1,49 @@
-# Rocket lru cache
-Fast and simple lru cache for node.js written in typescript.
+# Appolo Event Dispatcher
+Fast and simple event dispatcher for node.js written in typescript.
 
-The cache will remove the oldest used item when reached max capacity 
 ## Installation:
 
 ```javascript
-npm install rocket-lru --save
+npm install appolo-event-dispatcher --save
 ```
 
 ## Usage:
 
 ```javascript
-import {Cache} from "rocket-lru";
+import {EventDispatcher} from "appolo-event-dispatcher";
  
-//max items in cache is 5 and all the items will expire after 1 second
- let cache  = new Cache<string,string>({maxSize:5,maxAge:1000})
+class EventHandler extends EventDispatcher {
+    constructor() {
+        super();
+        setTimeout(() => this.fireEvent("test", 5), 100)
+    }
+}
 
-cache.set("test", "value")
-cache.get("test") // "value"
+let do = new EventHandler();
 
-cache.set("test2", "value",2000) // will expire after 2 secs
-cache.reset();    // empty the cache
+a.on("test", ()=>{
+        //do something
+});
+    
+
 ```
 
 
-
-## Options
-
-- `maxSize` -  The maximum size of the cache, default 1000 
-- `maxAge` optional set maximum age in ms of all cache items. if set getting expired item it will return null
-
-
 ## API
-- `set(key, value, [maxAge])` - Set the value of the key and mark the key as most recently used.
-if maxAge is passed the item will expire after maxAge ms.
-- `get(key) => value` - Return the value of the key. 
-If the key is not found or expired  return `null`. 
-mark the key as most recently used.
-- `peek(key)` - return the value of the key 
-If the key is not found or expired  return `null`.
-will not update recently used.
-- `del(key)` - Deletes a key out of the cache.
-- `reset()` - Reset the cache and delete all items.
-- `has(key)` - Return true if a key is in the cache, will not update recently used
-- `forEach(function(value,key,cache), [this])` - Loop over the cache items
-- `keys()` - Return an array of the keys in the cache.
-- `values()` - Return an array of the values in the cache.
-- `size` Return the size of the cache.
-- `prune()` - Delete all expired items.
-- `pop()` - Remove and return the least recently used
-- `maxAge` - Update cache max age. 
-- `maxSize` - Update cache max size.
-- `maxSize` - Update cache max size.
-- `hit(key)` - Mark the key as most recently used.
-- `ttl(key)` - Get the ttl time left of the key item.
-- `expire(key,maxAge)` - Update the expire time of the key item.
+- `on(event,callback,[scope])` add an event listener
+  - `event` - event name.
+  - `callback` - callback function that will triggered on event name.
+  - `scope` - optional, the scope of the `callback` function default: `this`.
+
+- `un(event,callback,[scope])` - remove an event listener. All the arguments must be `===` to the onces used in the `on` method, or else it won\`t be removed.
+  - `event` - event name.
+  - `callback` - callback function.
+  - `scope` - optional, the scope of the callback function.
+
+- `fireEvent(event,[arguments])` fireEvent - triggers the callback functions of a given event name
+  - `eventName` - name of the event
+  - `arguments` -  all other `arguments` will be passed to the `callback` function
+- `removeAllListeners()` - removes all event listeners
 
 ## License
 MIT
