@@ -15,18 +15,26 @@ import {EventDispatcher} from "appolo-event-dispatcher";
 class EventHandler extends EventDispatcher {
     constructor() {
         super();
-        setTimeout(() => this.fireEvent("test", 5), 100)
+        setTimeout(() => this.fireEvent("test", "some value"), 100)
     }
 }
 
-let do = new EventHandler();
+let eventHandler = new EventHandler();
 
-a.on("test", ()=>{
+eventHandler.on("test", (value)=>{
         //do something
 });
-    
+
+eventHandler.once("test", (value)=>{
+        //do something
+});
+
+let value  = await eventHandler.once("test");
+
+
 
 ```
+
 
 
 ## API
@@ -34,6 +42,12 @@ a.on("test", ()=>{
   - `event` - event name.
   - `callback` - callback function that will triggered on event name.
   - `scope` - optional, the scope of the `callback` function default: `this`.
+
+- `once(event,[callback],[scope])` add an event listener will be called only once if  callback passed  a promise will be returned
+  - `event` - event name.
+  - `callback` - callback function that will triggered on event name.
+  - `scope` - optional, the scope of the `callback` function default: `this`.
+
 
 - `un(event,callback,[scope])` - remove an event listener. All the arguments must be `===` to the onces used in the `on` method, or else it won\`t be removed.
   - `event` - event name.
@@ -44,6 +58,8 @@ a.on("test", ()=>{
   - `eventName` - name of the event
   - `arguments` -  all other `arguments` will be passed to the `callback` function
 - `removeAllListeners()` - removes all event listeners
+- `removeListenersByScope(scope)` - removes all event listeners by given scope
+
 
 ## License
 MIT

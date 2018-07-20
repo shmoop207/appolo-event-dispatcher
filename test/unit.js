@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const chai = require("chai");
-const Q = require("bluebird");
 const eventDispatcher_1 = require("../lib/eventDispatcher");
 let should = chai.should();
 describe("event dispatcher", function () {
@@ -27,46 +26,56 @@ describe("event dispatcher", function () {
     it("should fire event with params", async () => {
         let value = 0;
         class EventHandler extends eventDispatcher_1.EventDispatcher {
-            constructor() {
-                super();
-                setTimeout(() => this.fireEvent("test", 5), 100);
-            }
         }
         let a = new EventHandler();
         a.on("test", (v) => value = v);
-        await Q.delay(150);
+        a.fireEvent("test", 5);
         value.should.be.eq(5);
     });
     it("should subscribe with fire event with params", async () => {
         let value = 0;
-        class EventHandler extends eventDispatcher_1.EventDispatcher {
-            constructor() {
-                super();
-                setTimeout(() => this.fireEvent("test", 5), 100);
-            }
-        }
-        let a = new EventHandler();
+        let a = new eventDispatcher_1.EventDispatcher();
         let fn = (v) => value = v;
         a.on("test", fn);
-        await Q.delay(10);
         a.un("test", fn);
-        await Q.delay(140);
+        a.fireEvent("test", 5);
         value.should.be.eq(0);
     });
-    it("should removeAllListeners with fire event with params", async () => {
+    it("should subscribe with once", async () => {
         let value = 0;
-        class EventHandler extends eventDispatcher_1.EventDispatcher {
-            constructor() {
-                super();
-                setTimeout(() => this.fireEvent("test", 5), 100);
-            }
-        }
-        let a = new EventHandler();
+        let a = new eventDispatcher_1.EventDispatcher();
+        let fn = (v) => value = v;
+        a.once("test", fn);
+        a.fireEvent("test", 5);
+        value.should.be.eq(5);
+        a.fireEvent("test", 6);
+        value.should.be.eq(5);
+    });
+    it("should subscribe with once with promise", async () => {
+        let value;
+        let a = new eventDispatcher_1.EventDispatcher();
+        setTimeout(() => a.fireEvent("test", 5), 1);
+        value = await a.once("test");
+        value.should.be.eq(5);
+        a.fireEvent("test", 6);
+        value.should.be.eq(5);
+    });
+    it("should removeAllListeners", async () => {
+        let value = 0;
+        let a = new eventDispatcher_1.EventDispatcher();
         let fn = ((v) => value = v);
         a.on("test", fn);
-        await Q.delay(10);
         a.removeAllListeners();
-        await Q.delay(140);
+        a.fireEvent("test", 5);
+        value.should.be.eq(0);
+    });
+    it("should removeListeners by scope ", async () => {
+        let value = 0;
+        let a = new eventDispatcher_1.EventDispatcher();
+        let fn = ((v) => value = v);
+        a.on("test", fn, this);
+        a.removeListenersByScope(this);
+        a.fireEvent("test", 5);
         value.should.be.eq(0);
     });
 });

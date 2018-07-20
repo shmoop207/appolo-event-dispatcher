@@ -1,6 +1,5 @@
 "use strict";
-import chai = require('chai')
-import Q = require('bluebird')
+import chai = require('chai');
 import {EventDispatcher} from '../lib/eventDispatcher';
 
 let should = chai.should();
@@ -38,64 +37,103 @@ describe("event dispatcher", function () {
 
     it("should fire event with params", async () => {
         let value = 0;
+
         class EventHandler extends EventDispatcher {
-            constructor() {
-                super();
-                setTimeout(() => this.fireEvent("test", 5), 100)
-            }
+
         }
 
         let a = new EventHandler();
         a.on("test", (v) => value = v);
+        a.fireEvent("test", 5);
+        value.should.be.eq(5);
 
-        await Q.delay(150);
 
+    });
+
+    it("should subscribe with fire event with params", async () => {
+        let value = 0;
+
+
+        let a = new EventDispatcher();
+
+        let fn = (v) => value = v;
+
+        a.on("test", fn);
+
+        a.un("test", fn);
+
+        a.fireEvent("test", 5);
+
+        value.should.be.eq(0);
+
+
+    })
+
+    it("should subscribe with once", async () => {
+        let value = 0;
+
+
+        let a = new EventDispatcher();
+
+        let fn = (v) => value = v;
+        a.once("test", fn);
+
+        a.fireEvent("test", 5)
+
+        value.should.be.eq(5);
+
+        a.fireEvent("test", 6)
+        value.should.be.eq(5);
+
+
+    });
+
+    it("should subscribe with once with promise", async () => {
+        let value;
+
+        let a = new EventDispatcher();
+
+        setTimeout(() => a.fireEvent("test", 5), 1)
+
+        value = await a.once("test");
+
+        value.should.be.eq(5);
+
+        a.fireEvent("test", 6)
         value.should.be.eq(5);
 
 
     })
 
-    it("should subscribe with fire event with params", async () => {
+    it("should removeAllListeners", async () => {
         let value = 0;
-        class EventHandler extends EventDispatcher {
-            constructor() {
-                super();
-                setTimeout(() => this.fireEvent("test", 5), 100)
-            }
-        }
-
-        let a = new EventHandler();
-
-        let fn = (v) => value = v;
-        a.on("test", fn);
-        await Q.delay(10);
-        a.un("test", fn);
-        await Q.delay(140);
-
-        value.should.be.eq(0);
 
 
-    })
-
-    it("should removeAllListeners with fire event with params", async () => {
-        let value = 0;
-        class EventHandler extends EventDispatcher {
-            constructor() {
-                super();
-                setTimeout(() => this.fireEvent("test", 5), 100)
-            }
-        }
-
-        let a = new EventHandler();
+        let a = new EventDispatcher();
 
         let fn = ((v) => value = v);
         a.on("test", fn);
-        await Q.delay(10);
+
         a.removeAllListeners();
-        await Q.delay(140);
+        a.fireEvent("test", 5)
 
         value.should.be.eq(0);
 
+    });
+
+    it("should removeListeners by scope ", async () => {
+        let value = 0;
+
+
+        let a = new EventDispatcher();
+
+        let fn = ((v) => value = v);
+        a.on("test", fn, this);
+
+        a.removeListenersByScope(this);
+        a.fireEvent("test", 5)
+
+        value.should.be.eq(0);
 
     })
 });
