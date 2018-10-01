@@ -25,11 +25,11 @@ export class EventDispatcher {
     public once(event: string, fn?: (...args: any[]) => any, scope?: any): Promise<any> | void {
 
         if (fn) {
-            this.on(event, fn, scope, true)
+            return this.on(event, fn, scope, true);
         }
 
         return new Promise((resolve, reject) => {
-            fn = (...args: any[]) => resolve(args.length > 1 ? args : args[0])
+            fn = (...args: any[]) => resolve(args.length > 1 ? args : args[0]);
             this.on(event, fn, scope, true)
         })
 
