@@ -2,7 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const chai = require("chai");
 const eventDispatcher_1 = require("../lib/eventDispatcher");
+const hooksDispatcher_1 = require("../lib/hooksDispatcher");
 let should = chai.should();
+function delay(time) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, time);
+    });
+}
 describe("event dispatcher", function () {
     class EventHandler {
         constructor(dispatcher) {
@@ -41,6 +47,21 @@ describe("event dispatcher", function () {
         a.fireEvent("test", 5);
         value.should.be.eq(0);
     });
+    it("should unsubscribe only once ", async () => {
+        let value = 0;
+        let a = new eventDispatcher_1.EventDispatcher();
+        let fn = (v) => value += v;
+        let fn2 = (v) => value += v;
+        let fn3 = (v) => value += v;
+        a.on("test", fn, this);
+        a.on("test", fn2);
+        a.on("test", fn3, this);
+        a.fireEvent("test", 5);
+        a.un("test", fn);
+        a.un("test", fn3, this);
+        a.fireEvent("test", 5);
+        value.should.be.eq(20);
+    });
     it("should subscribe with once", async () => {
         let value = 0;
         let a = new eventDispatcher_1.EventDispatcher();
@@ -77,6 +98,79 @@ describe("event dispatcher", function () {
         a.removeListenersByScope(this);
         a.fireEvent("test", 5);
         value.should.be.eq(0);
+    });
+    it("should fire by scope ", async () => {
+        class Test extends eventDispatcher_1.EventDispatcher {
+            constructor() {
+                super();
+                this.num = 0;
+                this.on("test", this.add, this);
+            }
+            add(num) {
+                this.num += num;
+            }
+        }
+        let test = new Test();
+        test.fireEvent("test", 5);
+        test.num.should.be.eq(5);
+        test.un("test", test.add);
+        test.fireEvent("test", 5);
+        test.num.should.be.eq(5);
+    });
+    it("should bubble event ", async () => {
+        let value = 0;
+        class Test extends eventDispatcher_1.EventDispatcher {
+        }
+        let eventDispatcher = new eventDispatcher_1.EventDispatcher();
+        eventDispatcher.on("test", (num) => value = num);
+        let test = new Test();
+        test.bubble("test", eventDispatcher);
+        test.fireEvent("test", 5);
+        value.should.be.eq(5);
+    });
+    it("should wait for hook", async () => {
+        let value = 0;
+        class EventHandler extends hooksDispatcher_1.HooksDispatcher {
+        }
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(1);
+            value = v;
+        });
+        await a.fireEvent("test", 5);
+        value.should.be.eq(5);
+    });
+    it("should wait for hook serial", async () => {
+        let value = 0;
+        class EventHandler extends hooksDispatcher_1.HooksDispatcher {
+        }
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(3);
+            value = 1;
+        });
+        a.on("test", async (v) => {
+            await delay(1);
+            value = 2;
+        });
+        await a.fireEvent("test", 5);
+        value.should.be.eq(2);
+    });
+    it("should wait for hook parallel", async () => {
+        let value = 0;
+        class EventHandler extends hooksDispatcher_1.HooksDispatcher {
+        }
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(3);
+            value = 1;
+        }, null, { parallel: true });
+        a.on("test", async (v) => {
+            await delay(1);
+            value = 2;
+        }, null, { parallel: true });
+        await a.fireEvent("test", 5);
+        value.should.be.eq(1);
     });
 });
 //# sourceMappingURL=unit.js.map

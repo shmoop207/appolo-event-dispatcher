@@ -1,8 +1,15 @@
 "use strict";
 import chai = require('chai');
 import {EventDispatcher} from '../lib/eventDispatcher';
+import {HooksDispatcher} from "../lib/hooksDispatcher";
 
 let should = chai.should();
+
+function delay(time) {
+    return new Promise((resolve,) => {
+        setTimeout(resolve, time)
+    })
+}
 
 describe("event dispatcher", function () {
 
@@ -67,7 +74,32 @@ describe("event dispatcher", function () {
         value.should.be.eq(0);
 
 
-    })
+    });
+
+    it("should unsubscribe only once ", async () => {
+        let value = 0;
+
+
+        let a = new EventDispatcher();
+
+        let fn = (v) => value+=  v;
+        let fn2 = (v) => value+=  v;
+        let fn3 = (v) => value+=  v;
+
+        a.on("test", fn,this);
+        a.on("test", fn2);
+        a.on("test", fn3,this);
+        a.fireEvent("test", 5);
+        a.un("test", fn);
+        a.un("test", fn3,this);
+        a.fireEvent("test", 5);
+
+
+
+        value.should.be.eq(20);
+
+
+    });
 
     it("should subscribe with once", async () => {
         let value = 0;
@@ -78,11 +110,11 @@ describe("event dispatcher", function () {
         let fn = (v) => value = v;
         a.once("test", fn);
 
-        a.fireEvent("test", 5)
+        a.fireEvent("test", 5);
 
         value.should.be.eq(5);
 
-        a.fireEvent("test", 6)
+        a.fireEvent("test", 6);
         value.should.be.eq(5);
 
 
@@ -135,5 +167,125 @@ describe("event dispatcher", function () {
 
         value.should.be.eq(0);
 
+    });
+
+    it("should fire by scope ", async () => {
+
+        class Test extends EventDispatcher {
+            public num = 0;
+
+            constructor() {
+                super();
+                this.on("test", this.add, this);
+            }
+
+            add(num: number) {
+                this.num += num
+            }
+        }
+
+        let test = new Test();
+
+        test.fireEvent("test", 5);
+
+        test.num.should.be.eq(5);
+        test.un("test", test.add);
+
+        test.fireEvent("test", 5);
+
+        test.num.should.be.eq(5);
+
+    });
+
+    it("should bubble event ", async () => {
+
+        let value = 0;
+        class Test extends EventDispatcher {
+
+
+        }
+
+        let eventDispatcher = new EventDispatcher();
+        eventDispatcher.on("test",(num)=>value=num);
+
+        let test = new Test();
+
+        test.bubble("test",eventDispatcher);
+
+        test.fireEvent("test", 5);
+
+        value.should.be.eq(5);
+
     })
+
+
+    it("should wait for hook", async () => {
+
+        let value = 0;
+
+        class EventHandler extends HooksDispatcher {
+
+        }
+
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(1);
+            value = v
+        });
+        await a.fireEvent("test", 5);
+
+        value.should.be.eq(5);
+
+    })
+
+    it("should wait for hook serial", async () => {
+
+        let value = 0;
+
+        class EventHandler extends HooksDispatcher {
+
+        }
+
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(3);
+            value = 1
+        });
+
+        a.on("test", async (v) => {
+            await delay(1);
+            value = 2
+        });
+
+        await a.fireEvent("test", 5);
+
+        value.should.be.eq(2);
+
+    });
+
+    it("should wait for hook parallel", async () => {
+
+        let value = 0;
+
+        class EventHandler extends HooksDispatcher {
+
+        }
+
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(3);
+            value = 1
+        }, null, {parallel: true});
+
+        a.on("test", async (v) => {
+            await delay(1);
+            value = 2
+        }, null, {parallel: true});
+
+        await a.fireEvent("test", 5);
+
+        value.should.be.eq(1);
+    })
+
+
 });
