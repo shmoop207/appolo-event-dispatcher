@@ -82,18 +82,17 @@ describe("event dispatcher", function () {
 
         let a = new EventDispatcher();
 
-        let fn = (v) => value+=  v;
-        let fn2 = (v) => value+=  v;
-        let fn3 = (v) => value+=  v;
+        let fn = (v) => value += v;
+        let fn2 = (v) => value += v;
+        let fn3 = (v) => value += v;
 
-        a.on("test", fn,this);
+        a.on("test", fn, this);
         a.on("test", fn2);
-        a.on("test", fn3,this);
+        a.on("test", fn3, this);
         a.fireEvent("test", 5);
         a.un("test", fn);
-        a.un("test", fn3,this);
+        a.un("test", fn3, this);
         a.fireEvent("test", 5);
-
 
 
         value.should.be.eq(20);
@@ -200,17 +199,18 @@ describe("event dispatcher", function () {
     it("should bubble event ", async () => {
 
         let value = 0;
+
         class Test extends EventDispatcher {
 
 
         }
 
         let eventDispatcher = new EventDispatcher();
-        eventDispatcher.on("test",(num)=>value=num);
+        eventDispatcher.on("test", (num) => value = num);
 
         let test = new Test();
 
-        test.bubble("test",eventDispatcher);
+        test.bubble("test", eventDispatcher);
 
         test.fireEvent("test", 5);
 
@@ -259,7 +259,10 @@ describe("event dispatcher", function () {
 
         await a.fireEvent("test", 5);
 
-        value.should.be.eq(2);
+        value += 10;
+
+
+        value.should.be.eq(12);
 
     });
 

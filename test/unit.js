@@ -154,7 +154,8 @@ describe("event dispatcher", function () {
             value = 2;
         });
         await a.fireEvent("test", 5);
-        value.should.be.eq(2);
+        value += 10;
+        value.should.be.eq(12);
     });
     it("should wait for hook parallel", async () => {
         let value = 0;
