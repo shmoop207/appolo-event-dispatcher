@@ -1,11 +1,12 @@
 "use strict";
 
 import {ICallback, IEventOptions} from "./IEventOptions";
+import {IEventDispatcher} from "./IEventDispatcher";
 
 const CallbacksSymbol: unique symbol = Symbol('eventDispatcherCallbacks');
 export {CallbacksSymbol};
 
-export class EventDispatcher {
+export class EventDispatcher implements IEventDispatcher {
 
     protected [CallbacksSymbol]: { [index: string]: ICallback[] };
 
