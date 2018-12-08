@@ -8,4 +8,5 @@ export interface IEventDispatcher {
     fireEvent(event: string, ...args: any[]): void
     removeListenersByScope(scope: any): void
     removeAllListeners(): void
+    hasListener(event: string, fn?: (...args: any[]) => any, scope?: any):boolean
 }

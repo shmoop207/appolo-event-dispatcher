@@ -43,7 +43,7 @@ export class EventDispatcher implements IEventDispatcher {
 
     }
 
-    public bubble(event: string, scope: EventDispatcher) {
+    public bubble(event: string, scope: IEventDispatcher) {
         this.on(event, (...args: any[]) => scope.fireEvent(event, ...args))
     }
 
@@ -120,6 +120,32 @@ export class EventDispatcher implements IEventDispatcher {
         }
 
         this[CallbacksSymbol] = {};
+    }
+
+    public hasListener(event: string, fn?: (...args: any[]) => any, scope?: any): boolean {
+        if (!this[CallbacksSymbol]) {
+            return false;
+        }
+
+        let callbacks = this[CallbacksSymbol][event];
+
+        if (!callbacks || !callbacks.length) {
+            return false;
+        }
+
+        if (arguments.length == 1) {
+            return true;
+        }
+
+        for (let i = callbacks.length - 1; i >= 0; i--) {
+            let callback = callbacks[i];
+            if (callback.fn === fn && (!scope || callback.scope === scope)) {
+                return true;
+            }
+        }
+
+        return false
+
     }
 }
 

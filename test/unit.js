@@ -121,6 +121,23 @@ describe("event dispatcher", function () {
         let value = 0;
         class Test extends eventDispatcher_1.EventDispatcher {
         }
+        let fn = (num) => value = num;
+        let test = new Test();
+        test.on("test", fn);
+        test.on("test2", fn, this);
+        test.hasListener("test").should.be.ok;
+        test.hasListener("test", fn).should.be.ok;
+        test.hasListener("test", () => ({})).should.not.be.ok;
+        test.hasListener("test2", fn).should.be.ok;
+        test.hasListener("test2").should.be.ok;
+        test.hasListener("test2", fn, this).should.be.ok;
+        test.hasListener("test2", fn, {}).should.not.be.ok;
+        test.hasListener("test2", () => ({}), this).should.not.be.ok;
+    });
+    it("should have listener ", async () => {
+        let value = 0;
+        class Test extends eventDispatcher_1.EventDispatcher {
+        }
         let eventDispatcher = new eventDispatcher_1.EventDispatcher();
         eventDispatcher.on("test", (num) => value = num);
         let test = new Test();
