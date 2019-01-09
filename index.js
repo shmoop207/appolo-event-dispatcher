@@ -2,6 +2,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var eventDispatcher_1 = require("./lib/eventDispatcher");
 exports.EventDispatcher = eventDispatcher_1.EventDispatcher;
-var hooksDispatcher_1 = require("./lib/hooksDispatcher");
-exports.HooksDispatcher = hooksDispatcher_1.HooksDispatcher;
+exports.CallbacksSymbol = eventDispatcher_1.CallbacksSymbol;
 //# sourceMappingURL=index.js.map

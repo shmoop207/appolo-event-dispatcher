@@ -29,6 +29,7 @@ eventHandler.once("test", (value)=>{
         //do something
 });
 
+//or with promise
 let value  = await eventHandler.once("test");
 
 
@@ -45,7 +46,7 @@ add an event listener
   - `scope` - optional, the scope of the `callback` function default: `this`.
 
 #### `once(event,[callback],[scope])`
-add an event listener will be called only once if  callback passed  a promise will be returned
+add an event listener will be called only once if no callback passed a promise will be returned
   - `event` - event name.
   - `callback` - callback function that will triggered on event name.
   - `scope` - optional, the scope of the `callback` function default: `this`.
@@ -65,6 +66,9 @@ fireEvent - triggers the callback functions of a given event name
 removes all event listeners
 #### `removeListenersByScope(scope)`
 removes all event listeners by given scope
+
+#### `hasListener(event,callback,[scope]):boolean`
+return true if listener exists
 
 
 ## License

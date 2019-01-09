@@ -1,7 +1,6 @@
 "use strict";
 import chai = require('chai');
 import {EventDispatcher} from '../lib/eventDispatcher';
-import {HooksDispatcher} from "../lib/hooksDispatcher";
 
 let should = chai.should();
 
@@ -244,78 +243,5 @@ describe("event dispatcher", function () {
         value.should.be.eq(5);
 
     })
-
-
-    it("should wait for hook", async () => {
-
-        let value = 0;
-
-        class EventHandler extends HooksDispatcher {
-
-        }
-
-        let a = new EventHandler();
-        a.on("test", async (v) => {
-            await delay(1);
-            value = v
-        });
-        await a.fireEvent("test", 5);
-
-        value.should.be.eq(5);
-
-    })
-
-    it("should wait for hook serial", async () => {
-
-        let value = 0;
-
-        class EventHandler extends HooksDispatcher {
-
-        }
-
-        let a = new EventHandler();
-        a.on("test", async (v) => {
-            await delay(3);
-            value = 1
-        });
-
-        a.on("test", async (v) => {
-            await delay(1);
-            value = 2
-        });
-
-        await a.fireEvent("test", 5);
-
-        value += 10;
-
-
-        value.should.be.eq(12);
-
-    });
-
-    it("should wait for hook parallel", async () => {
-
-        let value = 0;
-
-        class EventHandler extends HooksDispatcher {
-
-        }
-
-        let a = new EventHandler();
-        a.on("test", async (v) => {
-            await delay(3);
-            value = 1
-        }, null, {parallel: true});
-
-        a.on("test", async (v) => {
-            await delay(1);
-            value = 2
-        }, null, {parallel: true});
-
-        await a.fireEvent("test", 5);
-
-        value.should.be.eq(1);
-    })
-
 
 });

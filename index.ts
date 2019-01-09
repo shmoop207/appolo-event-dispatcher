@@ -1,4 +1,6 @@
-export {EventDispatcher} from './lib/eventDispatcher'
+export {EventDispatcher, CallbacksSymbol} from './lib/eventDispatcher'
 export {IEventDispatcher} from './lib/IEventDispatcher'
-export {HooksDispatcher} from './lib/hooksDispatcher'
+export {IEventOptions} from './lib/IEventOptions'
+
+
 
