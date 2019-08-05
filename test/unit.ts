@@ -1,6 +1,6 @@
 "use strict";
 import chai = require('chai');
-import {EventDispatcher} from '../lib/eventDispatcher';
+import {EventDispatcher, Event} from '../index';
 
 let should = chai.should();
 
@@ -208,17 +208,17 @@ describe("event dispatcher", function () {
 
         let test = new Test();
         test.on("test", fn);
-        test.on("test2", fn,this);
+        test.on("test2", fn, this);
 
 
         test.hasListener("test").should.be.ok;
-        test.hasListener("test",fn).should.be.ok;
-        test.hasListener("test",()=>({})).should.not.be.ok;
-        test.hasListener("test2",fn).should.be.ok;
+        test.hasListener("test", fn).should.be.ok;
+        test.hasListener("test", () => ({})).should.not.be.ok;
+        test.hasListener("test2", fn).should.be.ok;
         test.hasListener("test2").should.be.ok;
-        test.hasListener("test2",fn,this).should.be.ok;
-        test.hasListener("test2",fn,{}).should.not.be.ok;
-        test.hasListener("test2",()=>({}),this).should.not.be.ok;
+        test.hasListener("test2", fn, this).should.be.ok;
+        test.hasListener("test2", fn, {}).should.not.be.ok;
+        test.hasListener("test2", () => ({}), this).should.not.be.ok;
 
     })
 
@@ -242,6 +242,29 @@ describe("event dispatcher", function () {
 
         value.should.be.eq(5);
 
+    })
+
+    it("should fire event with Event", () => {
+
+        let str = "";
+
+        class Test {
+
+            event: Event<string> = new Event();
+
+
+            handle() {
+                this.event.fireEvent("aaa")
+            }
+        }
+
+        let test = new Test();
+
+        test.event.on((result: string) => str = result);
+
+        test.handle();
+
+        str.should.be.eq("aaa");
     })
 
 });

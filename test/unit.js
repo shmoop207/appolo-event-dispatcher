@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const chai = require("chai");
-const eventDispatcher_1 = require("../lib/eventDispatcher");
+const index_1 = require("../index");
 let should = chai.should();
 function delay(time) {
     return new Promise((resolve) => {
@@ -18,7 +18,7 @@ describe("event dispatcher", function () {
         }
     }
     it('can un-subscribe from event while handling the event itself', function () {
-        let dispatcher = new eventDispatcher_1.EventDispatcher();
+        let dispatcher = new index_1.EventDispatcher();
         let handler1 = new EventHandler(dispatcher);
         let handler2 = new EventHandler(dispatcher);
         dispatcher.on('topic', handler1.handle, handler1);
@@ -30,7 +30,7 @@ describe("event dispatcher", function () {
     });
     it("should fire event with params", async () => {
         let value = 0;
-        class EventHandler extends eventDispatcher_1.EventDispatcher {
+        class EventHandler extends index_1.EventDispatcher {
         }
         let a = new EventHandler();
         a.on("test", (v) => value = v);
@@ -39,7 +39,7 @@ describe("event dispatcher", function () {
     });
     it("should subscribe with fire event with params", async () => {
         let value = 0;
-        let a = new eventDispatcher_1.EventDispatcher();
+        let a = new index_1.EventDispatcher();
         let fn = (v) => value = v;
         a.on("test", fn);
         a.un("test", fn);
@@ -48,7 +48,7 @@ describe("event dispatcher", function () {
     });
     it("should unsubscribe only once ", async () => {
         let value = 0;
-        let a = new eventDispatcher_1.EventDispatcher();
+        let a = new index_1.EventDispatcher();
         let fn = (v) => value += v;
         let fn2 = (v) => value += v;
         let fn3 = (v) => value += v;
@@ -63,7 +63,7 @@ describe("event dispatcher", function () {
     });
     it("should subscribe with once", async () => {
         let value = 0;
-        let a = new eventDispatcher_1.EventDispatcher();
+        let a = new index_1.EventDispatcher();
         let fn = (v) => value = v;
         a.once("test", fn);
         a.fireEvent("test", 5);
@@ -73,7 +73,7 @@ describe("event dispatcher", function () {
     });
     it("should subscribe with once with promise", async () => {
         let value;
-        let a = new eventDispatcher_1.EventDispatcher();
+        let a = new index_1.EventDispatcher();
         setTimeout(() => a.fireEvent("test", 5), 1);
         value = await a.once("test");
         value.should.be.eq(5);
@@ -82,7 +82,7 @@ describe("event dispatcher", function () {
     });
     it("should removeAllListeners", async () => {
         let value = 0;
-        let a = new eventDispatcher_1.EventDispatcher();
+        let a = new index_1.EventDispatcher();
         let fn = ((v) => value = v);
         a.on("test", fn);
         a.removeAllListeners();
@@ -91,7 +91,7 @@ describe("event dispatcher", function () {
     });
     it("should removeListeners by scope ", async () => {
         let value = 0;
-        let a = new eventDispatcher_1.EventDispatcher();
+        let a = new index_1.EventDispatcher();
         let fn = ((v) => value = v);
         a.on("test", fn, this);
         a.removeListenersByScope(this);
@@ -99,7 +99,7 @@ describe("event dispatcher", function () {
         value.should.be.eq(0);
     });
     it("should fire by scope ", async () => {
-        class Test extends eventDispatcher_1.EventDispatcher {
+        class Test extends index_1.EventDispatcher {
             constructor() {
                 super();
                 this.num = 0;
@@ -118,7 +118,7 @@ describe("event dispatcher", function () {
     });
     it("should bubble event ", async () => {
         let value = 0;
-        class Test extends eventDispatcher_1.EventDispatcher {
+        class Test extends index_1.EventDispatcher {
         }
         let fn = (num) => value = num;
         let test = new Test();
@@ -135,14 +135,29 @@ describe("event dispatcher", function () {
     });
     it("should have listener ", async () => {
         let value = 0;
-        class Test extends eventDispatcher_1.EventDispatcher {
+        class Test extends index_1.EventDispatcher {
         }
-        let eventDispatcher = new eventDispatcher_1.EventDispatcher();
+        let eventDispatcher = new index_1.EventDispatcher();
         eventDispatcher.on("test", (num) => value = num);
         let test = new Test();
         test.bubble("test", eventDispatcher);
         test.fireEvent("test", 5);
         value.should.be.eq(5);
+    });
+    it("should fire event with Event", () => {
+        let str = "";
+        class Test {
+            constructor() {
+                this.event = new index_1.Event();
+            }
+            handle() {
+                this.event.fireEvent("aaa");
+            }
+        }
+        let test = new Test();
+        test.event.on((result) => str = result);
+        test.handle();
+        str.should.be.eq("aaa");
     });
 });
 //# sourceMappingURL=unit.js.map

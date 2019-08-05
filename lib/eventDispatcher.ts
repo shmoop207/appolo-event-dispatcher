@@ -147,5 +147,15 @@ export class EventDispatcher implements IEventDispatcher {
         return false
 
     }
+
+    public listenerCount(event: string): number {
+        let callbacks = this[CallbacksSymbol][event];
+
+        if (!callbacks) {
+            return 0;
+        }
+
+        return callbacks.length
+    }
 }
 
