@@ -187,6 +187,8 @@ describe("event dispatcher", function () {
         str.should.be.eq(10);
         test.event.fireEvent("ccc.aaa.bbba");
         str.should.be.eq(11);
+        test.event.hasListener("ccc.aaa.bbba").should.be.ok;
+        test.event.listenerCount("ccc.aaa.bbba").should.be.eq(1);
     });
 });
 //# sourceMappingURL=unit.js.map

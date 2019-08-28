@@ -1,6 +1,6 @@
 "use strict";
 
-import {ICallback, IEventOptions} from "./IEventOptions";
+import {ICallback, IEventOptions, IHandler} from "./IEventOptions";
 import {IEventDispatcher} from "./IEventDispatcher";
 import {RoutingKey} from "./routingKey";
 
@@ -11,7 +11,7 @@ export {CallbacksSymbol, RoutingKeysSymbol};
 
 export class EventDispatcher implements IEventDispatcher {
 
-    protected [CallbacksSymbol]: { [index: string]: { callbacks: ICallback[], isRoutingKey: boolean } };
+    protected [CallbacksSymbol]: { [index: string]: IHandler };
     protected [RoutingKeysSymbol]: { [index: string]: { key: string, regex: RegExp, cache: { [index: string]: boolean } } };
 
     public on(event: string, fn: (...args: any[]) => any, scope?: any, options?: IEventOptions): void {
@@ -98,29 +98,11 @@ export class EventDispatcher implements IEventDispatcher {
 
         let handler = this[CallbacksSymbol][event];
 
-        if ((!handler || !handler.isRoutingKey) && this[RoutingKeysSymbol]) {
+        let routingKeys = this._eventDispatcherGetRoutingKeys(handler, event);
 
-            let routingKeysIndex = this[RoutingKeysSymbol],
-                routingKeys = this[RoutingKeysCacheSymbol];
-
+        if (routingKeys.length) {
             for (let i = 0, len = routingKeys.length; i < len; i++) {
-                let routingKey = routingKeysIndex[routingKeys[i]];
-
-                if (!routingKey) {
-                    continue;
-                }
-
-                let cacheKey = routingKey.key + event;
-
-                let shouldFireEvent = routingKey.cache[cacheKey];
-
-                if (shouldFireEvent === undefined) {
-                    shouldFireEvent = routingKey.cache[cacheKey] = routingKey.regex.test(event)
-                }
-
-                if (shouldFireEvent) {
-                    this.fireEvent(routingKey.key, ...args)
-                }
+                this.fireEvent(routingKeys[i], ...args)
             }
         }
 
@@ -148,6 +130,40 @@ export class EventDispatcher implements IEventDispatcher {
             }
         }
     }
+
+    private _eventDispatcherGetRoutingKeys(handler: IHandler, event: string): string[] {
+
+        if ((handler && handler.isRoutingKey) || !this[RoutingKeysSymbol]) {
+            return [];
+        }
+
+        let keys = [],
+            routingKeysIndex = this[RoutingKeysSymbol],
+            routingKeys = this[RoutingKeysCacheSymbol];
+
+        for (let i = 0, len = routingKeys.length; i < len; i++) {
+            let routingKey = routingKeysIndex[routingKeys[i]];
+
+            if (!routingKey) {
+                continue;
+            }
+
+            let cacheKey = routingKey.key + event;
+
+            let shouldFireEvent = routingKey.cache[cacheKey];
+
+            if (shouldFireEvent === undefined) {
+                shouldFireEvent = routingKey.cache[cacheKey] = routingKey.regex.test(event)
+            }
+
+            if (shouldFireEvent) {
+                keys.push(routingKey.key)
+            }
+        }
+
+        return keys;
+    }
+
 
     public removeListenersByScope(scope: any): void {
 
@@ -179,18 +195,28 @@ export class EventDispatcher implements IEventDispatcher {
 
     }
 
-    public hasListener(event: string, fn?: (...args: any[]) => any, scope?: any): boolean {
+    public hasListener(event: string, fn ?: (...args: any[]) => any, scope ?: any): boolean {
         if (!this[CallbacksSymbol]) {
             return false;
         }
 
         let handler = this[CallbacksSymbol][event];
 
+        let routingKeys = this._eventDispatcherGetRoutingKeys(handler, event);
+
+        if (routingKeys.length) {
+            for (let i = 0, len = routingKeys.length; i < len; i++) {
+                if (this.hasListener(routingKeys[i], fn, scope)) {
+                    return true;
+                }
+            }
+        }
+
         if (!handler || !handler.callbacks.length) {
             return false;
         }
 
-        if (arguments.length == 1) {
+        if (arguments.length == 1 || !fn) {
             return true;
         }
 
@@ -206,13 +232,22 @@ export class EventDispatcher implements IEventDispatcher {
     }
 
     public listenerCount(event: string): number {
-        let handler = this[CallbacksSymbol][event];
+        let handler = this[CallbacksSymbol][event],
+            sum = 0;
 
-        if (!handler) {
-            return 0;
+        let routingKeys = this._eventDispatcherGetRoutingKeys(handler, event);
+
+        if (routingKeys.length) {
+            for (let i = 0, len = routingKeys.length; i < len; i++) {
+                sum += this.listenerCount(routingKeys[i]);
+            }
         }
 
-        return handler.callbacks.length
+        if (!handler) {
+            return sum;
+        }
+
+        return sum + handler.callbacks.length
     }
 }
 

@@ -8,3 +8,8 @@ export interface ICallback {
     scope?: any,
     options?: IEventOptions
 }
+
+export interface IHandler{
+    callbacks: ICallback[],
+    isRoutingKey: boolean
+}

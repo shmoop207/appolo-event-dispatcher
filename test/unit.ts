@@ -265,7 +265,7 @@ describe("event dispatcher", function () {
         test.handle();
 
         str.should.be.eq("aaa");
-    })
+    });
 
 
     it("should fire event with routing Key", () => {
@@ -312,6 +312,9 @@ describe("event dispatcher", function () {
         test.event.fireEvent("ccc.aaa.bbba");
 
         str.should.be.eq(11);
+
+        test.event.hasListener("ccc.aaa.bbba").should.be.ok;
+        test.event.listenerCount("ccc.aaa.bbba").should.be.eq(1);
 
     })
 
