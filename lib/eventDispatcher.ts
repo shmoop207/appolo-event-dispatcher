@@ -2,13 +2,17 @@
 
 import {ICallback, IEventOptions} from "./IEventOptions";
 import {IEventDispatcher} from "./IEventDispatcher";
+import {RoutingKey} from "./routingKey";
 
 const CallbacksSymbol: unique symbol = Symbol('eventDispatcherCallbacks');
-export {CallbacksSymbol};
+const RoutingKeysSymbol: unique symbol = Symbol('eventDispatcherRoutingKeys');
+const RoutingKeysCacheSymbol: unique symbol = Symbol('eventDispatcherRoutingKeysCache');
+export {CallbacksSymbol, RoutingKeysSymbol};
 
 export class EventDispatcher implements IEventDispatcher {
 
-    protected [CallbacksSymbol]: { [index: string]: ICallback[] };
+    protected [CallbacksSymbol]: { [index: string]: { callbacks: ICallback[], isRoutingKey: boolean } };
+    protected [RoutingKeysSymbol]: { [index: string]: { key: string, regex: RegExp, cache: { [index: string]: boolean } } };
 
     public on(event: string, fn: (...args: any[]) => any, scope?: any, options?: IEventOptions): void {
 
@@ -16,17 +20,31 @@ export class EventDispatcher implements IEventDispatcher {
             this[CallbacksSymbol] = {};
         }
 
-        let callbacks = this[CallbacksSymbol][event];
+        let handler = this[CallbacksSymbol][event];
 
-        if (!callbacks) {
-            this[CallbacksSymbol][event] = callbacks = [];
+        if (!handler) {
+            handler = this[CallbacksSymbol][event] = {callbacks: [], isRoutingKey: false};
         }
 
-        callbacks.unshift({
+        handler.callbacks.unshift({
             fn: fn,
             scope: scope,
             options: options || {}
         });
+
+        if (!handler.isRoutingKey && RoutingKey.isRoutingRoute(event)) {
+            if (!this[RoutingKeysSymbol]) {
+                this[RoutingKeysSymbol] = {};
+                this[RoutingKeysCacheSymbol] = [];
+            }
+
+            handler.isRoutingKey = true;
+
+            this[RoutingKeysSymbol][event] = {regex: RoutingKey.createRegex(event), key: event, cache: {}};
+
+            this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
+
+        }
 
     }
 
@@ -53,17 +71,22 @@ export class EventDispatcher implements IEventDispatcher {
             return
         }
 
-        let callbacks = this[CallbacksSymbol][event];
+        let handler = this[CallbacksSymbol][event];
 
-        if (!callbacks || !callbacks.length) {
+        if (!handler || !handler.callbacks.length) {
             return
         }
 
-        for (let i = callbacks.length - 1; i >= 0; i--) {
-            let callback = callbacks[i];
+        for (let i = handler.callbacks.length - 1; i >= 0; i--) {
+            let callback = handler.callbacks[i];
             if (callback.fn === fn && (scope ? callback.scope === scope : true)) {
-                callbacks.splice(i, 1);
+                handler.callbacks.splice(i, 1);
             }
+        }
+
+        if (!handler.callbacks.length && this[RoutingKeysSymbol] && this[RoutingKeysSymbol][event]) {
+            this[RoutingKeysSymbol][event] = undefined;
+            this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
         }
     }
 
@@ -73,15 +96,40 @@ export class EventDispatcher implements IEventDispatcher {
             return;
         }
 
-        let callbacks = this[CallbacksSymbol][event];
+        let handler = this[CallbacksSymbol][event];
 
+        if ((!handler || !handler.isRoutingKey) && this[RoutingKeysSymbol]) {
 
-        if (!callbacks) {
+            let routingKeysIndex = this[RoutingKeysSymbol],
+                routingKeys = this[RoutingKeysCacheSymbol];
+
+            for (let i = 0, len = routingKeys.length; i < len; i++) {
+                let routingKey = routingKeysIndex[routingKeys[i]];
+
+                if (!routingKey) {
+                    continue;
+                }
+
+                let cacheKey = routingKey.key + event;
+
+                let shouldFireEvent = routingKey.cache[cacheKey];
+
+                if (shouldFireEvent === undefined) {
+                    shouldFireEvent = routingKey.cache[cacheKey] = routingKey.regex.test(event)
+                }
+
+                if (shouldFireEvent) {
+                    this.fireEvent(routingKey.key, ...args)
+                }
+            }
+        }
+
+        if (!handler) {
             return;
         }
 
-        for (let i = callbacks.length - 1; i >= 0; i--) {
-            let callback = callbacks[i];
+        for (let i = handler.callbacks.length - 1; i >= 0; i--) {
+            let callback = handler.callbacks[i];
 
             if (!callback || !callback.fn) {
                 continue;
@@ -90,7 +138,13 @@ export class EventDispatcher implements IEventDispatcher {
             callback.fn.apply((callback.scope || null), args);
 
             if (callback.options.once) {
-                callbacks.splice(i, 1);
+                handler.callbacks.splice(i, 1);
+
+                if (!handler.callbacks.length && this[RoutingKeysSymbol] && this[RoutingKeysSymbol][event]) {
+                    this[RoutingKeysSymbol][event] = undefined;
+                    this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
+                }
+
             }
         }
     }
@@ -99,13 +153,13 @@ export class EventDispatcher implements IEventDispatcher {
 
         let keys = Object.keys(this[CallbacksSymbol] || {});
         for (let i = 0, length = keys.length; i < length; i++) {
-            let callbacks = this[CallbacksSymbol][keys[i]];
+            let handler = this[CallbacksSymbol][keys[i]];
 
-            for (let j = callbacks.length - 1; j >= 0; j--) {
-                let callback = callbacks[j];
+            for (let j = handler.callbacks.length - 1; j >= 0; j--) {
+                let callback = handler.callbacks[j];
 
                 if (callback.scope === scope) {
-                    callbacks.splice(j, 1);
+                    handler.callbacks.splice(j, 1);
                 }
             }
         }
@@ -115,11 +169,14 @@ export class EventDispatcher implements IEventDispatcher {
 
         let keys = Object.keys(this[CallbacksSymbol] || {});
         for (let i = 0, length = keys.length; i < length; i++) {
-            let callbacks = this[CallbacksSymbol][keys[i]];
-            callbacks.length = 0;
+            let handler = this[CallbacksSymbol][keys[i]];
+            handler.callbacks.length = 0;
         }
 
         this[CallbacksSymbol] = {};
+        this[RoutingKeysSymbol] = undefined;
+        this[RoutingKeysCacheSymbol] = undefined
+
     }
 
     public hasListener(event: string, fn?: (...args: any[]) => any, scope?: any): boolean {
@@ -127,9 +184,9 @@ export class EventDispatcher implements IEventDispatcher {
             return false;
         }
 
-        let callbacks = this[CallbacksSymbol][event];
+        let handler = this[CallbacksSymbol][event];
 
-        if (!callbacks || !callbacks.length) {
+        if (!handler || !handler.callbacks.length) {
             return false;
         }
 
@@ -137,8 +194,8 @@ export class EventDispatcher implements IEventDispatcher {
             return true;
         }
 
-        for (let i = callbacks.length - 1; i >= 0; i--) {
-            let callback = callbacks[i];
+        for (let i = handler.callbacks.length - 1; i >= 0; i--) {
+            let callback = handler.callbacks[i];
             if (callback.fn === fn && (!scope || callback.scope === scope)) {
                 return true;
             }
@@ -149,13 +206,13 @@ export class EventDispatcher implements IEventDispatcher {
     }
 
     public listenerCount(event: string): number {
-        let callbacks = this[CallbacksSymbol][event];
+        let handler = this[CallbacksSymbol][event];
 
-        if (!callbacks) {
+        if (!handler) {
             return 0;
         }
 
-        return callbacks.length
+        return handler.callbacks.length
     }
 }
 

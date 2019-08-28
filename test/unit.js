@@ -159,5 +159,34 @@ describe("event dispatcher", function () {
         test.handle();
         str.should.be.eq("aaa");
     });
+    it("should fire event with routing Key", () => {
+        let str = 0;
+        class Test {
+            constructor() {
+                this.event = new index_1.EventDispatcher();
+            }
+            handle() {
+                this.event.fireEvent("aaa.bbb", "aaa");
+            }
+        }
+        let test = new Test();
+        let fn = (result) => str++;
+        let fn2 = (result) => str++;
+        test.event.on("#.bbb", fn);
+        test.event.on("#", fn);
+        test.event.on("aaa.*", fn, this);
+        test.event.on("*", fn);
+        test.handle();
+        test.handle();
+        str.should.be.eq(6);
+        test.event.un("aaa.*", fn, this);
+        test.handle();
+        str.should.be.eq(8);
+        test.event.once("#", fn2);
+        test.event.fireEvent("ccc.aaa.bbba");
+        str.should.be.eq(10);
+        test.event.fireEvent("ccc.aaa.bbba");
+        str.should.be.eq(11);
+    });
 });
 //# sourceMappingURL=unit.js.map
