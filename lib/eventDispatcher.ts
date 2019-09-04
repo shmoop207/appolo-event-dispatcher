@@ -11,7 +11,7 @@ export {CallbacksSymbol, RoutingKeysSymbol};
 
 export class EventDispatcher implements IEventDispatcher {
 
-    constructor(private readonly _eventDispatcherOptions?: { await: boolean, parallel: boolean }) {
+    constructor(private readonly _eventDispatcherOptions?: { await?: boolean, parallel?: boolean }) {
 
         this._eventDispatcherOptions = Object.assign({}, {await: false, parallel: true}, this._eventDispatcherOptions)
     }

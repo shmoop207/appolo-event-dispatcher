@@ -5,7 +5,7 @@ import {EventDispatcher} from "./eventDispatcher";
 
 export class Event<T> {
 
-    constructor(private readonly _opts?: { await: boolean, parallel: boolean }) {
+    constructor(private readonly _opts?: { await?: boolean, parallel?: boolean }) {
 
         this._opts = Object.assign({}, {await: false, parallel: true}, _opts)
     }
