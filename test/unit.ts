@@ -318,4 +318,56 @@ describe("event dispatcher", function () {
 
     })
 
+    it("should wait for hook parallel", async () => {
+
+        let value = 0;
+
+        class EventHandler extends EventDispatcher {
+
+        }
+
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(3);
+            value = 1
+        }, null, {parallel: true, await: true});
+
+        a.on("test", async (v) => {
+            await delay(1);
+            value = 2
+        }, null, {parallel: true,await: true});
+
+        await a.fireEvent("test", 5);
+
+        value.should.be.eq(1);
+    });
+
+    it("should wait for hook serial", async () => {
+
+        let value = 0;
+
+        class EventHandler extends EventDispatcher {
+
+        }
+
+        let a = new EventHandler();
+        a.on("test", async (v) => {
+            await delay(3);
+            value = 1
+        },null,{parallel: false,await: true});
+
+        a.on("test", async (v) => {
+            await delay(1);
+            value = 2
+        },null,{parallel: false,await: true});
+
+        await a.fireEvent("test", 5);
+
+        value += 10;
+
+
+        value.should.be.eq(12);
+
+    });
+
 });

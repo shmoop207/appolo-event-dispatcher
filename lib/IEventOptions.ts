@@ -1,5 +1,7 @@
 export interface IEventOptions {
     once?: boolean,
+    await?: boolean,
+    parallel?: boolean
 }
 
 
@@ -9,7 +11,13 @@ export interface ICallback {
     options?: IEventOptions
 }
 
-export interface IHandler{
+export interface IHandler {
     callbacks: ICallback[],
     isRoutingKey: boolean
+}
+
+
+export interface IDispacherOptions {
+    await?: boolean,
+    parallel?: boolean
 }

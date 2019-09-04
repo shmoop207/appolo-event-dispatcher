@@ -11,6 +11,11 @@ export {CallbacksSymbol, RoutingKeysSymbol};
 
 export class EventDispatcher implements IEventDispatcher {
 
+    constructor(private readonly _eventDispatcherOptions?: { await: boolean, parallel: boolean }) {
+
+        this._eventDispatcherOptions = Object.assign({}, {await: false, parallel: true}, this._eventDispatcherOptions)
+    }
+
     protected [CallbacksSymbol]: { [index: string]: IHandler };
     protected [RoutingKeysSymbol]: { [index: string]: { key: string, regex: RegExp, cache: { [index: string]: boolean } } };
 
@@ -29,7 +34,7 @@ export class EventDispatcher implements IEventDispatcher {
         handler.callbacks.unshift({
             fn: fn,
             scope: scope,
-            options: options || {}
+            options: Object.assign({await: false, parallel: true}, this._eventDispatcherOptions, options)
         });
 
         if (!handler.isRoutingKey && RoutingKey.isRoutingRoute(event)) {
@@ -90,44 +95,56 @@ export class EventDispatcher implements IEventDispatcher {
         }
     }
 
-    public fireEvent(event: string, ...args: any[]): void {
+    public async fireEvent(event: string, ...args: any[]): Promise<any> {
 
         if (!this[CallbacksSymbol]) {
             return;
         }
 
         let handler = this[CallbacksSymbol][event];
+        let parallelPromises: Promise<any>[] = [];
 
         let routingKeys = this._eventDispatcherGetRoutingKeys(handler, event);
 
         if (routingKeys.length) {
             for (let i = 0, len = routingKeys.length; i < len; i++) {
-                this.fireEvent(routingKeys[i], ...args)
+                parallelPromises.push(this.fireEvent(routingKeys[i], ...args))
             }
         }
 
-        if (!handler) {
-            return;
-        }
 
-        for (let i = handler.callbacks.length - 1; i >= 0; i--) {
-            let callback = handler.callbacks[i];
+        if (handler) {
+            for (let i = handler.callbacks.length - 1; i >= 0; i--) {
+                let callback = handler.callbacks[i];
 
-            if (!callback || !callback.fn) {
-                continue;
-            }
-
-            callback.fn.apply((callback.scope || null), args);
-
-            if (callback.options.once) {
-                handler.callbacks.splice(i, 1);
-
-                if (!handler.callbacks.length && this[RoutingKeysSymbol] && this[RoutingKeysSymbol][event]) {
-                    this[RoutingKeysSymbol][event] = undefined;
-                    this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
+                if (!callback || !callback.fn) {
+                    continue;
                 }
 
+                let result = callback.fn.apply((callback.scope || null), args);
+
+                if (callback.options.once) {
+                    handler.callbacks.splice(i, 1);
+
+                    if (!handler.callbacks.length && this[RoutingKeysSymbol] && this[RoutingKeysSymbol][event]) {
+                        this[RoutingKeysSymbol][event] = undefined;
+                        this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
+                    }
+                }
+
+                if (callback.options.await) {
+                    if (callback.options.parallel) {
+                        parallelPromises.push(result)
+                    } else {
+                        await result;
+                    }
+                }
             }
+        }
+
+        if (parallelPromises.length) {
+
+            await Promise.all(parallelPromises)
         }
     }
 
