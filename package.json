@@ -20,7 +20,7 @@
     "test": "mocha test"
   },
   "main": "./index.js",
-  "version": "6.0.14",
+  "version": "7.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -30,9 +30,11 @@
   "readmeFilename": "README.md",
   "dependencies": {},
   "devDependencies": {
+    "tslib": "^1.11.1",
     "@types/bluebird": "^3.5.27",
     "@types/chai": "^4.2.1",
     "@types/mocha": "^5.2.7",
+    "@types/node": "^13.9.1",
     "chai": "^4.2.0",
     "mocha": "^6.2.0",
     "typescript": "^3.6.2"

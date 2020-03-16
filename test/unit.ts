@@ -123,17 +123,32 @@ describe("event dispatcher", function () {
 
         let a = new EventDispatcher();
 
-        setTimeout(() => a.fireEvent("test", 5), 1)
+        setTimeout(() => a.fireEvent("test", 5), 1);
 
         value = await a.once("test");
 
         value.should.be.eq(5);
 
-        a.fireEvent("test", 6)
+        a.fireEvent("test", 6);
         value.should.be.eq(5);
 
 
-    })
+    });
+
+    it("should subscribe with once with promise timeout", async () => {
+        let value;
+
+        let a = new EventDispatcher();
+
+        setTimeout(() => a.fireEvent("test", 5), 3);
+        try{
+            value = await a.once("test",null,null,{timeout:5});
+            value.should.not.be.ok
+        }catch (e) {
+            e.should.be.instanceOf(Error);
+        }
+
+    });
 
     it("should removeAllListeners", async () => {
         let value = 0;
@@ -145,7 +160,7 @@ describe("event dispatcher", function () {
         a.on("test", fn);
 
         a.removeAllListeners();
-        a.fireEvent("test", 5)
+        a.fireEvent("test", 5);
 
         value.should.be.eq(0);
 
@@ -316,7 +331,7 @@ describe("event dispatcher", function () {
         test.event.hasListener("ccc.aaa.bbba").should.be.ok;
         test.event.listenerCount("ccc.aaa.bbba").should.be.eq(1);
 
-    })
+    });
 
     it("should wait for hook parallel", async () => {
 
@@ -335,9 +350,9 @@ describe("event dispatcher", function () {
         a.on("test", async (v) => {
             await delay(1);
             value = 2
-        }, null, {parallel: true,await: true});
+        }, null, {parallel: true, await: true});
 
-        await a.fireEvent("test", 5);
+        await a.fireEventAsync("test", 5);
 
         value.should.be.eq(1);
     });
@@ -354,14 +369,14 @@ describe("event dispatcher", function () {
         a.on("test", async (v) => {
             await delay(3);
             value = 1
-        },null,{parallel: false,await: true});
+        }, null, {parallel: false, await: true});
 
         a.on("test", async (v) => {
             await delay(1);
             value = 2
-        },null,{parallel: false,await: true});
+        }, null, {parallel: false, await: true});
 
-        await a.fireEvent("test", 5);
+        await a.fireEventAsync("test", 5);
 
         value += 10;
 
@@ -369,5 +384,46 @@ describe("event dispatcher", function () {
         value.should.be.eq(12);
 
     });
+
+    it("should run with iterator limit", async () => {
+        const emitter = new EventDispatcher();
+        const iterator = emitter.iterator("test", {limit: 2});
+
+        emitter.fireEvent('test', 1);
+        emitter.fireEvent('test', 2);
+        emitter.fireEvent('test', 3);
+
+        let result = await iterator.next();
+
+        result.should.be.deep.equal({value: 1, done: false});
+
+        result = await iterator.next();
+        result.should.be.deep.equal({value: 2, done: false});
+
+        result = await iterator.next();
+        result.should.be.deep.equal({value: undefined, done: true});
+    });
+
+    it("should run with iterator for of", async () => {
+        const emitter = new EventDispatcher();
+        const iterator = emitter.iterator("test", {limit: 3});
+
+        emitter.fireEvent('test', 1);
+        await delay(1);
+
+        emitter.fireEvent('test', 2);
+        await delay(1);
+        emitter.fireEvent('test', 3);
+        await delay(1);
+
+        let results = [];
+
+        for await (const value of iterator) {
+            results.push(value)
+        }
+
+        results.should.be.deep.equal([1, 2, 3]);
+
+    })
 
 });

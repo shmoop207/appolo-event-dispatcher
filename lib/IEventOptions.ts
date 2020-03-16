@@ -2,6 +2,7 @@ export interface IEventOptions {
     once?: boolean,
     await?: boolean,
     parallel?: boolean
+    timeout?: number
 }
 
 

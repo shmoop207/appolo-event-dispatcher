@@ -3,10 +3,11 @@
 import {ICallback, IEventOptions, IHandler} from "./IEventOptions";
 import {IEventDispatcher} from "./IEventDispatcher";
 import {RoutingKey} from "./routingKey";
+import {Iterator} from "./iterator";
 
-const CallbacksSymbol: unique symbol = Symbol('eventDispatcherCallbacks');
-const RoutingKeysSymbol: unique symbol = Symbol('eventDispatcherRoutingKeys');
-const RoutingKeysCacheSymbol: unique symbol = Symbol('eventDispatcherRoutingKeysCache');
+const CallbacksSymbol = '__eventDispatcherCallbacks__';
+const RoutingKeysSymbol = '__eventDispatcherRoutingKeys__';
+const RoutingKeysCacheSymbol = '__eventDispatcherRoutingKeysCache__';
 export {CallbacksSymbol, RoutingKeysSymbol};
 
 export class EventDispatcher implements IEventDispatcher {
@@ -59,9 +60,17 @@ export class EventDispatcher implements IEventDispatcher {
             return this.on(event, fn, scope, {...options, ...{once: true}});
         }
 
-        return new Promise((resolve) => {
-            fn = (...args: any[]) => resolve(args.length > 1 ? args : args[0]);
-            this.on(event, fn, scope, {...options, ...{once: true}})
+        return new Promise((resolve, reject) => {
+            let timeout = null;
+            fn = (...args: any[]) => {
+                clearTimeout(timeout);
+                resolve(args.length > 1 ? args : args[0])
+            };
+            this.on(event, fn, scope, {...options, ...{once: true}});
+            if (options.timeout) {
+                timeout = setTimeout(() => reject(new Error("timeout")), options.timeout)
+            }
+
         })
 
     }
@@ -95,57 +104,109 @@ export class EventDispatcher implements IEventDispatcher {
         }
     }
 
-    public async fireEvent(event: string, ...args: any[]): Promise<any> {
+    public async fireEventAsync(event: string, ...args: any[]): Promise<any> {
+
+        let result = this._fireEvent(event, args);
+        if (!result) {
+            return;
+        }
+
+        if (result.serialPromises.length) {
+            for (let callback of result.serialPromises) {
+                await callback.callback.fn.apply(callback.callback.scope, callback.args)
+            }
+        }
+
+        if (result.parallelPromises.length) {
+
+            await Promise.all(result.parallelPromises.map(callback => callback.callback.fn.apply(callback.callback.scope, callback.args)))
+        }
+
+        if (result.callbacks.length) {
+            for (let callback of result.callbacks) {
+                callback.callback.fn.apply(callback.callback.scope, callback.args)
+            }
+        }
+    }
+
+    public fireEvent(event: string, ...args: any[]): void {
+        let result = this._fireEvent(event, args);
+        if (!result) {
+            return;
+        }
+
+        let callbacks = result.callbacks.concat(result.parallelPromises, result.serialPromises)
+
+        for (let i = 0; i < callbacks.length; i++) {
+            let callback = callbacks[i];
+            callback.callback.fn.apply(callback.callback.scope, callback.args)
+        }
+    }
+
+    private _fireEvent(event: string, args: any[]): {
+        parallelPromises: { callback: ICallback, args: any[] }[],
+        serialPromises: { callback: ICallback, args: any[] }[],
+        callbacks: { callback: ICallback, args: any[] }[]
+    } {
 
         if (!this[CallbacksSymbol]) {
             return;
         }
 
         let handler = this[CallbacksSymbol][event];
-        let parallelPromises: Promise<any>[] = [];
+        let parallelPromises: { callback: ICallback, args: any[] }[] = [],
+            serialPromises: { callback: ICallback, args: any[] }[] = [],
+            callbacks: { callback: ICallback, args: any[] }[] = [];
 
         let routingKeys = this._eventDispatcherGetRoutingKeys(handler, event);
 
         if (routingKeys.length) {
             for (let i = 0, len = routingKeys.length; i < len; i++) {
-                parallelPromises.push(this.fireEvent(routingKeys[i], ...args))
+                parallelPromises.push({
+                    callback: {
+                        fn: this.fireEvent,
+                        scope: this
+                    }, args: [routingKeys[i], ...args]
+
+                })
             }
         }
 
+        if (!handler) {
+            return {callbacks, serialPromises, parallelPromises}
+        }
+        for (let i = handler.callbacks.length - 1; i >= 0; i--) {
+            let callback = handler.callbacks[i];
 
-        if (handler) {
-            for (let i = handler.callbacks.length - 1; i >= 0; i--) {
-                let callback = handler.callbacks[i];
+            if (!callback || !callback.fn) {
+                continue;
+            }
 
-                if (!callback || !callback.fn) {
-                    continue;
+            //callback.fn.apply((callback.scope || null), args);
+
+            if (callback.options.await) {
+                if (callback.options.parallel) {
+                    parallelPromises.push({callback, args})
+                } else {
+                    serialPromises.push({callback, args});
                 }
+            } else {
+                callbacks.push({callback, args})
+            }
 
-                let result = callback.fn.apply((callback.scope || null), args);
 
-                if (callback.options.once) {
-                    handler.callbacks.splice(i, 1);
+            if (callback.options.once) {
+                handler.callbacks.splice(i, 1);
 
-                    if (!handler.callbacks.length && this[RoutingKeysSymbol] && this[RoutingKeysSymbol][event]) {
-                        this[RoutingKeysSymbol][event] = undefined;
-                        this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
-                    }
-                }
-
-                if (callback.options.await) {
-                    if (callback.options.parallel) {
-                        parallelPromises.push(result)
-                    } else {
-                        await result;
-                    }
+                if (!handler.callbacks.length && this[RoutingKeysSymbol] && this[RoutingKeysSymbol][event]) {
+                    this[RoutingKeysSymbol][event] = undefined;
+                    this[RoutingKeysCacheSymbol] = Object.keys(this[RoutingKeysSymbol]);
                 }
             }
+
         }
 
-        if (parallelPromises.length) {
-
-            await Promise.all(parallelPromises)
-        }
+        return {callbacks, serialPromises, parallelPromises}
     }
 
     private _eventDispatcherGetRoutingKeys(handler: IHandler, event: string): string[] {
@@ -265,6 +326,12 @@ export class EventDispatcher implements IEventDispatcher {
         }
 
         return sum + handler.callbacks.length
+    }
+
+    public iterator<T>(event: string | string[], options?: { limit?: number }): AsyncIterableIterator<T> {
+        let iterator = new Iterator<T>(this, event, options);
+
+        return iterator.iterate()
     }
 }
 

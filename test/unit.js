@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
 const chai = require("chai");
 const index_1 = require("../index");
 let should = chai.should();
@@ -79,6 +80,18 @@ describe("event dispatcher", function () {
         value.should.be.eq(5);
         a.fireEvent("test", 6);
         value.should.be.eq(5);
+    });
+    it("should subscribe with once with promise timeout", async () => {
+        let value;
+        let a = new index_1.EventDispatcher();
+        setTimeout(() => a.fireEvent("test", 5), 3);
+        try {
+            value = await a.once("test", null, null, { timeout: 5 });
+            value.should.not.be.ok;
+        }
+        catch (e) {
+            e.should.be.instanceOf(Error);
+        }
     });
     it("should removeAllListeners", async () => {
         let value = 0;
@@ -203,7 +216,7 @@ describe("event dispatcher", function () {
             await delay(1);
             value = 2;
         }, null, { parallel: true, await: true });
-        await a.fireEvent("test", 5);
+        await a.fireEventAsync("test", 5);
         value.should.be.eq(1);
     });
     it("should wait for hook serial", async () => {
@@ -219,9 +232,48 @@ describe("event dispatcher", function () {
             await delay(1);
             value = 2;
         }, null, { parallel: false, await: true });
-        await a.fireEvent("test", 5);
+        await a.fireEventAsync("test", 5);
         value += 10;
         value.should.be.eq(12);
+    });
+    it("should run with iterator limit", async () => {
+        const emitter = new index_1.EventDispatcher();
+        const iterator = emitter.iterator("test", { limit: 2 });
+        emitter.fireEvent('test', 1);
+        emitter.fireEvent('test', 2);
+        emitter.fireEvent('test', 3);
+        let result = await iterator.next();
+        result.should.be.deep.equal({ value: 1, done: false });
+        result = await iterator.next();
+        result.should.be.deep.equal({ value: 2, done: false });
+        result = await iterator.next();
+        result.should.be.deep.equal({ value: undefined, done: true });
+    });
+    it("should run with iterator for of", async () => {
+        var e_1, _a;
+        const emitter = new index_1.EventDispatcher();
+        const iterator = emitter.iterator("test", { limit: 3 });
+        emitter.fireEvent('test', 1);
+        await delay(1);
+        emitter.fireEvent('test', 2);
+        await delay(1);
+        emitter.fireEvent('test', 3);
+        await delay(1);
+        let results = [];
+        try {
+            for (var iterator_1 = tslib_1.__asyncValues(iterator), iterator_1_1; iterator_1_1 = await iterator_1.next(), !iterator_1_1.done;) {
+                const value = iterator_1_1.value;
+                results.push(value);
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (iterator_1_1 && !iterator_1_1.done && (_a = iterator_1.return)) await _a.call(iterator_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        results.should.be.deep.equal([1, 2, 3]);
     });
 });
 //# sourceMappingURL=unit.js.map
