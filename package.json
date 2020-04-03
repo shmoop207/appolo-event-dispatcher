@@ -20,7 +20,7 @@
     "test": "mocha test"
   },
   "main": "./index.js",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -31,12 +31,11 @@
   "dependencies": {},
   "devDependencies": {
     "tslib": "^1.11.1",
-    "@types/bluebird": "^3.5.27",
-    "@types/chai": "^4.2.1",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^13.9.1",
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.11.0",
     "chai": "^4.2.0",
-    "mocha": "^6.2.0",
-    "typescript": "^3.6.2"
+    "mocha": "^7.1.1",
+    "typescript": "^3.8.3"
   }
 }

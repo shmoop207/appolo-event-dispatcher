@@ -25,7 +25,7 @@ export class Event<T> implements IEvent<T> {
     }
 
     public once(fn?: (payload: T) => any, scope?: any, options: { timeout?: number } = {}): Promise<any> | void {
-        this._dispatcher.once(this.EVENT_NAME, fn, scope, {...options, ...this._opts});
+        return this._dispatcher.once(this.EVENT_NAME, fn, scope, {...options, ...this._opts});
     }
 
     public iterator<T>(event: string | string[], options?: { limit?: number }): AsyncIterableIterator<T> {
