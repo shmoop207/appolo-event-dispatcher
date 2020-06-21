@@ -2,7 +2,8 @@ export interface IEventOptions {
     once?: boolean,
     await?: boolean,
     parallel?: boolean
-    timeout?: number
+    timeout?: number,
+    order?: number
 }
 
 
@@ -18,7 +19,7 @@ export interface IHandler {
 }
 
 
-export interface IDispacherOptions {
+export interface IDispatcherOptions {
     await?: boolean,
     parallel?: boolean
 }

@@ -29,14 +29,18 @@ export class EventDispatcher implements IEventDispatcher {
         let handler = this[CallbacksSymbol][event];
 
         if (!handler) {
-            handler = this[CallbacksSymbol][event] = {callbacks: [], isRoutingKey: false};
+            handler = this[CallbacksSymbol][event] = {callbacks: [], isRoutingKey: false, order: false};
         }
 
         handler.callbacks.unshift({
             fn: fn,
             scope: scope,
-            options: Object.assign({await: false, parallel: true}, this._eventDispatcherOptions, options)
+            options: Object.assign({await: false, parallel: true, order: 0}, this._eventDispatcherOptions, options)
         });
+
+        if (options && options.order) {
+            handler.callbacks.sort((a, b) => a.options.order - b.options.order)
+        }
 
         if (!handler.isRoutingKey && RoutingKey.isRoutingRoute(event)) {
             if (!this[RoutingKeysSymbol]) {

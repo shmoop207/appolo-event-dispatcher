@@ -99,6 +99,26 @@ describe("event dispatcher", function () {
 
     });
 
+    it("should fire by order", async () => {
+
+        let str = ""
+
+
+        let a = new EventDispatcher();
+
+        a.on("test", () => str += "1#", null, {})
+        a.on("test", () => str += "2#", null, {order: 3})
+        a.on("test", () => str += "3#", null, {order: 1});
+        a.on("test", () => str += "4#", null, {});
+        a.on("test", () => str += "5#", null, {order:2});
+
+        a.fireEvent("test");
+
+
+
+        str.should.be.eq("2#5#3#1#4#")
+    })
+
     it("should subscribe with once", async () => {
         let value = 0;
 
@@ -141,10 +161,10 @@ describe("event dispatcher", function () {
         let a = new EventDispatcher();
 
         setTimeout(() => a.fireEvent("test", 5), 3);
-        try{
-            value = await a.once("test",null,null,{timeout:5});
+        try {
+            value = await a.once("test", null, null, {timeout: 5});
             value.should.not.be.ok
-        }catch (e) {
+        } catch (e) {
             e.should.be.instanceOf(Error);
         }
 

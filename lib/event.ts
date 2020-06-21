@@ -6,7 +6,7 @@ import {IEvent} from "./IEvent";
 
 export class Event<T> implements IEvent<T> {
 
-    constructor(private readonly _opts?: { await?: boolean, parallel?: boolean }) {
+    constructor(private readonly _opts?: IEventOptions) {
 
         this._opts = Object.assign({}, {await: false, parallel: true}, _opts)
     }
@@ -16,15 +16,15 @@ export class Event<T> implements IEvent<T> {
     private _dispatcher: EventDispatcher = new EventDispatcher();
 
 
-    public on(fn: (payload: T) => any, scope?: any): void {
-        this._dispatcher.on(this.EVENT_NAME, fn, scope, this._opts)
+    public on(fn: (payload: T) => any, scope?: any,options: IEventOptions = {}): void {
+        this._dispatcher.on(this.EVENT_NAME, fn, scope, {...options, ...this._opts})
     }
 
     public un(fn: (payload: T) => any, scope?: any): void {
         this._dispatcher.un(this.EVENT_NAME, fn, scope)
     }
 
-    public once(fn?: (payload: T) => any, scope?: any, options: { timeout?: number } = {}): Promise<any> | void {
+    public once(fn?: (payload: T) => any, scope?: any, options: IEventOptions = {}): Promise<any> | void {
         return this._dispatcher.once(this.EVENT_NAME, fn, scope, {...options, ...this._opts});
     }
 

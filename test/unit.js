@@ -62,6 +62,17 @@ describe("event dispatcher", function () {
         a.fireEvent("test", 5);
         value.should.be.eq(20);
     });
+    it("should fire by order", async () => {
+        let str = "";
+        let a = new index_1.EventDispatcher();
+        a.on("test", () => str += "1#", null, {});
+        a.on("test", () => str += "2#", null, { order: 3 });
+        a.on("test", () => str += "3#", null, { order: 1 });
+        a.on("test", () => str += "4#", null, {});
+        a.on("test", () => str += "5#", null, { order: 2 });
+        a.fireEvent("test");
+        str.should.be.eq("2#5#3#1#4#");
+    });
     it("should subscribe with once", async () => {
         let value = 0;
         let a = new index_1.EventDispatcher();
