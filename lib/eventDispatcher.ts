@@ -4,6 +4,7 @@ import {ICallback, IEventOptions, IHandler} from "./IEventOptions";
 import {IEventDispatcher} from "./IEventDispatcher";
 import {RoutingKey} from "./routingKey";
 import {Iterator} from "./iterator";
+import {Util} from "./util";
 
 const CallbacksSymbol = '__eventDispatcherCallbacks__';
 const RoutingKeysSymbol = '__eventDispatcherRoutingKeys__';
@@ -20,7 +21,25 @@ export class EventDispatcher implements IEventDispatcher {
     protected [CallbacksSymbol]: { [index: string]: IHandler };
     protected [RoutingKeysSymbol]: { [index: string]: { key: string, regex: RegExp, cache: { [index: string]: boolean } } };
 
-    public on(event: string, fn: (...args: any[]) => any, scope?: any, options?: IEventOptions): void {
+    public on(event: string | string[], fn: (...args: any[]) => any, scope?: any, options?: IEventOptions): void {
+
+        if (Array.isArray(event)) {
+
+            if (options && options.saga) {
+                let results: any[][] = [];
+
+                for (let i = 0; i < event.length; i++) {
+                    results[i] = [];
+
+                    this.on(event[i], Util.sagaFn(results, i, fn,scope), null, options)
+                }
+            } else {
+                event.forEach(event => this.on(event, fn, scope, options))
+            }
+
+            return;
+        }
+
 
         if (!this[CallbacksSymbol]) {
             this[CallbacksSymbol] = {};
@@ -58,23 +77,14 @@ export class EventDispatcher implements IEventDispatcher {
 
     }
 
-    public once(event: string, fn?: (...args: any[]) => any, scope?: any, options: IEventOptions = {}): Promise<any> | void {
+    public once(event: string | string[], fn?: (...args: any[]) => any, scope?: any, options: IEventOptions = {}): Promise<any> | void {
 
         if (fn) {
             return this.on(event, fn, scope, {...options, ...{once: true}});
         }
 
         return new Promise((resolve, reject) => {
-            let timeout = null;
-            fn = (...args: any[]) => {
-                clearTimeout(timeout);
-                resolve(args.length > 1 ? args : args[0])
-            };
-            this.on(event, fn, scope, {...options, ...{once: true}});
-            if (options.timeout) {
-                timeout = setTimeout(() => reject(new Error("timeout")), options.timeout)
-            }
-
+            this.on(event, Util.timeoutFn(options.timeout, resolve, reject), scope, {...options, ...{once: true}});
         })
 
     }
@@ -83,7 +93,12 @@ export class EventDispatcher implements IEventDispatcher {
         this.on(event, (...args: any[]) => scope.fireEvent(event, ...args))
     }
 
-    public un(event: string, fn: (...args: any[]) => any, scope?: any): void {
+    public un(event: string | string[], fn: (...args: any[]) => any, scope?: any): void {
+
+        if (Array.isArray(event)) {
+            event.forEach(event => this.un(event, fn["@__eventDispatcher__"] || fn, scope));
+            return;
+        }
 
         if (!this[CallbacksSymbol]) {
             return

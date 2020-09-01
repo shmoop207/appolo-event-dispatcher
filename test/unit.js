@@ -62,6 +62,28 @@ describe("event dispatcher", function () {
         a.fireEvent("test", 5);
         value.should.be.eq(20);
     });
+    it("should fire saga", async () => {
+        let eventDispatcher = new index_1.EventDispatcher();
+        let args = [];
+        eventDispatcher.on(["a", "b", "c"], function () {
+            args = Array.from(arguments);
+        }, null, { saga: true });
+        setTimeout(() => eventDispatcher.fireEvent("b", 5), 1);
+        setTimeout(() => eventDispatcher.fireEvent("c", 6), 4);
+        setTimeout(() => eventDispatcher.fireEvent("c", 7), 1);
+        setTimeout(() => eventDispatcher.fireEvent("a", 8), 3);
+        await new Promise(resolve => setTimeout(resolve, 5));
+        args.should.be.deep.eq([8, 5, 7]);
+    });
+    it("should fire once saga", async () => {
+        let eventDispatcher = new index_1.EventDispatcher();
+        setTimeout(() => eventDispatcher.fireEvent("b", 5), 1);
+        setTimeout(() => eventDispatcher.fireEvent("c", 6), 4);
+        setTimeout(() => eventDispatcher.fireEvent("c", 7), 1);
+        setTimeout(() => eventDispatcher.fireEvent("a", 8), 3);
+        let args = await eventDispatcher.once(["a", "b", "c"], null, null, { saga: true });
+        args.should.be.deep.eq([8, 5, 7]);
+    });
     it("should fire by order", async () => {
         let str = "";
         let a = new index_1.EventDispatcher();
@@ -182,6 +204,42 @@ describe("event dispatcher", function () {
         test.event.on((result) => str = result);
         test.handle();
         str.should.be.eq("aaa");
+    });
+    it("should fire event with Event with saga", () => {
+        let str = "";
+        class Test {
+            constructor() {
+                this.event = new index_1.Event();
+                this.event2 = new index_1.Event();
+            }
+            handle() {
+                this.event.fireEvent("aaa");
+                this.event2.fireEvent("bbb");
+            }
+        }
+        let test = new Test();
+        index_1.Event.saga([test.event, test.event2], function () {
+            str = Array.from(arguments).join(",");
+        });
+        test.handle();
+        str.should.be.eq("aaa,bbb");
+    });
+    it("should fire event with Event with saga once", async () => {
+        let str = "";
+        class Test {
+            constructor() {
+                this.event = new index_1.Event();
+                this.event2 = new index_1.Event();
+            }
+            handle() {
+                this.event.fireEvent("aaa");
+                this.event2.fireEvent("bbb");
+            }
+        }
+        let test = new Test();
+        setTimeout(() => test.handle());
+        let results = await index_1.Event.sagaOnce([test.event, test.event2]);
+        results.join(",").should.be.eq("aaa,bbb");
     });
     it("should fire event with routing Key", () => {
         let str = 0;

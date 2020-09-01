@@ -3,6 +3,7 @@
 import {IEventOptions} from "./IEventOptions";
 import {EventDispatcher} from "./eventDispatcher";
 import {IEvent} from "./IEvent";
+import {Util} from "./util";
 
 export class Event<T> implements IEvent<T> {
 
@@ -15,8 +16,29 @@ export class Event<T> implements IEvent<T> {
 
     private _dispatcher: EventDispatcher = new EventDispatcher();
 
+    public static saga(events: IEvent<any>[], fn: (...args: any[]) => any, scope?: any, options?: IEventOptions) {
+        let results: any[][] = [];
 
-    public on(fn: (payload: T) => any, scope?: any,options: IEventOptions = {}): void {
+        for (let i = 0; i < events.length; i++) {
+            results[i] = [];
+            events[i].on(Util.sagaFn(results, i, fn, scope), null, options)
+        }
+    }
+
+    public static sagaOnce(events: IEvent<any>[], fn?: (...args: any[]) => any, scope?: any, options: IEventOptions = {}): Promise<any> | void {
+
+        if (fn) {
+            return Event.saga(events, fn, scope, {...options, ...{once: true}});
+        }
+
+        return new Promise((resolve, reject) => {
+            Event.saga(events, Util.timeoutFn(options.timeout, resolve, reject), scope, {...options, ...{once: true}});
+        })
+
+    }
+
+
+    public on(fn: (payload: T) => any, scope?: any, options: IEventOptions = {}): void {
         this._dispatcher.on(this.EVENT_NAME, fn, scope, {...options, ...this._opts})
     }
 

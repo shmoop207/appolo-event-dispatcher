@@ -4,6 +4,7 @@ export interface IEventOptions {
     parallel?: boolean
     timeout?: number,
     order?: number
+    saga?: boolean
 }
 
 
@@ -16,6 +17,7 @@ export interface ICallback {
 export interface IHandler {
     callbacks: ICallback[],
     isRoutingKey: boolean
+    order: boolean
 }
 
 

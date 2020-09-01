@@ -99,6 +99,41 @@ describe("event dispatcher", function () {
 
     });
 
+    it("should fire saga", async () => {
+        let eventDispatcher = new EventDispatcher();
+
+        let args = [];
+
+        eventDispatcher.on(["a", "b", "c"], function () {
+            args = Array.from(arguments)
+        }, null, {saga: true})
+
+        setTimeout(() => eventDispatcher.fireEvent("b", 5), 1);
+        setTimeout(() => eventDispatcher.fireEvent("c", 6), 4);
+        setTimeout(() => eventDispatcher.fireEvent("c", 7), 1);
+        setTimeout(() => eventDispatcher.fireEvent("a", 8), 3);
+
+        await new Promise(resolve => setTimeout(resolve, 5))
+
+        args.should.be.deep.eq([8, 5, 7])
+
+    })
+
+    it("should fire once saga", async () => {
+        let eventDispatcher = new EventDispatcher();
+
+
+        setTimeout(() => eventDispatcher.fireEvent("b", 5), 1);
+        setTimeout(() => eventDispatcher.fireEvent("c", 6), 4);
+        setTimeout(() => eventDispatcher.fireEvent("c", 7), 1);
+        setTimeout(() => eventDispatcher.fireEvent("a", 8), 3);
+
+        let args = await eventDispatcher.once(["a", "b", "c"], null, null, {saga: true})
+
+        args.should.be.deep.eq([8, 5, 7])
+
+    })
+
     it("should fire by order", async () => {
 
         let str = ""
@@ -110,10 +145,9 @@ describe("event dispatcher", function () {
         a.on("test", () => str += "2#", null, {order: 3})
         a.on("test", () => str += "3#", null, {order: 1});
         a.on("test", () => str += "4#", null, {});
-        a.on("test", () => str += "5#", null, {order:2});
+        a.on("test", () => str += "5#", null, {order: 2});
 
         a.fireEvent("test");
-
 
 
         str.should.be.eq("2#5#3#1#4#")
@@ -300,6 +334,58 @@ describe("event dispatcher", function () {
         test.handle();
 
         str.should.be.eq("aaa");
+    });
+
+    it("should fire event with Event with saga", () => {
+
+        let str = "";
+
+        class Test {
+
+            event: Event<string> = new Event();
+            event2: Event<string> = new Event();
+
+
+            handle() {
+                this.event.fireEvent("aaa")
+                this.event2.fireEvent("bbb")
+            }
+        }
+
+        let test = new Test();
+
+        Event.saga([test.event, test.event2], function () {
+            str = Array.from(arguments).join(",");
+        })
+
+        test.handle();
+
+        str.should.be.eq("aaa,bbb");
+    });
+
+    it("should fire event with Event with saga once", async () => {
+
+        let str = "";
+
+        class Test {
+
+            event: Event<string> = new Event();
+            event2: Event<string> = new Event();
+
+
+            handle() {
+                this.event.fireEvent("aaa")
+                this.event2.fireEvent("bbb")
+            }
+        }
+
+        let test = new Test();
+
+        setTimeout(()=>test.handle());
+
+        let results =  await Event.sagaOnce([test.event, test.event2]);
+
+        results.join(",").should.be.eq("aaa,bbb");
     });
 
 

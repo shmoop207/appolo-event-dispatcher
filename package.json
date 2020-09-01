@@ -1,5 +1,5 @@
 {
-  "name": "appolo-event-dispatcher",
+  "name": "@appolo/events",
   "description": "event-dispatcher",
   "keywords": [
     "event",
@@ -20,7 +20,7 @@
     "test": "mocha test"
   },
   "main": "./index.js",
-  "version": "7.0.2",
+  "version": "8.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -30,12 +30,12 @@
   "readmeFilename": "README.md",
   "dependencies": {},
   "devDependencies": {
-    "tslib": "^1.11.1",
-    "@types/chai": "^4.2.11",
-    "@types/mocha": "^7.0.2",
-    "@types/node": "^13.11.0",
+    "tslib": "^2.0.1",
+    "@types/chai": "^4.2.12",
+    "@types/mocha": "^8.0.3",
+    "@types/node": "^14.6.2",
     "chai": "^4.2.0",
-    "mocha": "^7.1.1",
-    "typescript": "^3.8.3"
+    "mocha": "^8.1.3",
+    "typescript": "^4.0.2"
   }
 }
