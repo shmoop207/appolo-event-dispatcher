@@ -4,7 +4,7 @@ Fast and simple event dispatcher for node.js written in typescript.
 ## Installation:
 
 ```javascript
-npm install appolo-event-dispatcher --save
+npm install @appolo/events --save
 ```
 
 ## Usage:
