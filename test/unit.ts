@@ -189,6 +189,34 @@ describe("event dispatcher", function () {
 
     });
 
+    it("should await event callback", async () => {
+        let value = 0;
+
+        let a = new Event<void>();
+
+
+        a.once(async () => {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            value += 2;
+        }, this, {await: true});
+
+        a.on(async () => {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            value += 2;
+        }, this, {await: true});
+
+        a.on(async () => {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            value += 2;
+        }, this, {await: false});
+
+        await a.fireEventAsync()
+
+        value.should.be.eq(4);
+
+
+    });
+
     it("should subscribe with once with promise timeout", async () => {
         let value;
 
@@ -381,9 +409,9 @@ describe("event dispatcher", function () {
 
         let test = new Test();
 
-        setTimeout(()=>test.handle());
+        setTimeout(() => test.handle());
 
-        let results =  await Event.sagaOnce([test.event, test.event2]);
+        let results = await Event.sagaOnce([test.event, test.event2]);
 
         results.join(",").should.be.eq("aaa,bbb");
     });

@@ -114,6 +114,24 @@ describe("event dispatcher", function () {
         a.fireEvent("test", 6);
         value.should.be.eq(5);
     });
+    it("should await event callback", async () => {
+        let value = 0;
+        let a = new index_1.Event();
+        a.once(async () => {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            value += 2;
+        }, this, { await: true });
+        a.on(async () => {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            value += 2;
+        }, this, { await: true });
+        a.on(async () => {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            value += 2;
+        }, this, { await: false });
+        await a.fireEventAsync();
+        value.should.be.eq(4);
+    });
     it("should subscribe with once with promise timeout", async () => {
         let value;
         let a = new index_1.EventDispatcher();

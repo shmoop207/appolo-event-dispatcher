@@ -39,7 +39,7 @@ export class Event<T> implements IEvent<T> {
 
 
     public on(fn: (payload: T) => any, scope?: any, options: IEventOptions = {}): void {
-        this._dispatcher.on(this.EVENT_NAME, fn, scope, {...options, ...this._opts})
+        this._dispatcher.on(this.EVENT_NAME, fn, scope, { ...this._opts,...options})
     }
 
     public un(fn: (payload: T) => any, scope?: any): void {
@@ -47,7 +47,7 @@ export class Event<T> implements IEvent<T> {
     }
 
     public once(fn?: (payload: T) => any, scope?: any, options: IEventOptions = {}): Promise<any> | void {
-        return this._dispatcher.once(this.EVENT_NAME, fn, scope, {...options, ...this._opts});
+        return this._dispatcher.once(this.EVENT_NAME, fn, scope, {...this._opts,...options});
     }
 
     public iterator<T>(event: string | string[], options?: { limit?: number }): AsyncIterableIterator<T> {
