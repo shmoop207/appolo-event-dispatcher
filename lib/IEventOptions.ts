@@ -25,3 +25,10 @@ export interface IDispatcherOptions {
     await?: boolean,
     parallel?: boolean
 }
+
+
+export type CallbackArray = {
+    callback: ICallback,
+    args: any[]
+}[]
+
